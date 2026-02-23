@@ -11,10 +11,14 @@ function App() {
   const [project, setProject] = useState('')
   const [description, setDescription] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleSubmit = (e) => {
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSuccessMessage('')
+    setErrorMessage('')
 
     // Validacija
     if (!name) {
@@ -27,18 +31,59 @@ function App() {
       return
     }
 
+    if (!project.trim()) {
+      setErrorMessage('Project je obavezan')
+      return
+    }
+
     if (!description.trim()) {
       alert('Molimo unesite opis.')
       return
     }
 
-    // Ako je validacija prošla
-    setSuccessMessage('✅ Sačuvano!')
-    
-    // Očisti Hours, Project, Description, ali ostavi Name i Date
-    setHours('')
-    setProject('')
-    setDescription('')
+    // Slanje podataka na backend
+    try {
+      const response = await fetch(`${BACKEND_URL}/timesheet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          date,
+          hours: Number(hours),
+          project,
+          description,
+        }),
+      })
+
+      if (!response.ok) {
+        let errorDetail = 'Greška pri upisu.'
+        try {
+          const errorData = await response.json()
+          if (errorData.detail) {
+            errorDetail = errorData.detail
+          }
+        } catch (e) {
+          // Ako ne može da parsira JSON, koristi default poruku
+        }
+        setErrorMessage(errorDetail)
+        setSuccessMessage('')
+        return
+      }
+
+      // Uspešan upis
+      setSuccessMessage('✅ Sačuvano!')
+      setErrorMessage('')
+      
+      // Očisti Hours, Project, Description, ali ostavi Name i Date
+      setHours('')
+      setProject('')
+      setDescription('')
+    } catch (error) {
+      setErrorMessage('Greška pri upisu.')
+      setSuccessMessage('')
+    }
   }
 
   return (
@@ -89,12 +134,17 @@ function App() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="project">Project:</label>
+          <label htmlFor="project">Project: <span className="required">*</span></label>
           <input
             type="text"
             id="project"
             value={project}
-            onChange={(e) => setProject(e.target.value)}
+            onChange={(e) => {
+              setProject(e.target.value)
+              if (errorMessage) {
+                setErrorMessage('')
+              }
+            }}
             placeholder="Naziv projekta"
           />
         </div>
@@ -112,6 +162,10 @@ function App() {
         </div>
 
         <button type="submit" className="submit-button">Submit</button>
+
+        {errorMessage && (
+          <div className="error-message">{errorMessage}</div>
+        )}
 
         {successMessage && (
           <div className="success-message">{successMessage}</div>
