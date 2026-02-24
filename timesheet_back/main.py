@@ -14,8 +14,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
-from .database import get_db
-from .models import User, Timesheet as TimesheetModel
+from database import get_db
+from models import User, Timesheet as TimesheetModel
 
 load_dotenv()
 
